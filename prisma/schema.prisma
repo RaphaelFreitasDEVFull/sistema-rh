@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+model Employee {
+  id              Int              @id @default(autoincrement())
+  firstName       String
+  lastName        String
+  dateOfBirth     DateTime
+  cpf             String           @unique
+  rg              String
+  email           String           @unique
+  phone           String
+  address         String
+  hireDate        DateTime
+  terminationDate DateTime?        // Nullable for active employees
+  status          String           // Active, Inactive, etc.
+  photo           String?          // URL or path to the employee's photo
+  salary          Salary?
+  benefits        EmployeeBenefit[]
+  attendance      Attendance[]
+  performance     PerformanceReview[]
+  leaves          Leave[]
+  documents       Document[]
+  department      Department?      @relation(fields: [departmentId], references: [id])
+  departmentId    Int?
+  user            User?
+  managedDepartment Department[]   @relation("DepartmentManager") // Inverse relation
+}
+
+
+model Job {
+  id             Int              @id @default(autoincrement())
+  title          String
+  salaryRangeMin Float
+  salaryRangeMax Float
+  department     Department?      @relation(fields: [departmentId], references: [id])
+  departmentId   Int?
+}
+
+model Department {
+  id        Int       @id @default(autoincrement())
+  name      String
+  manager   Employee? @relation("DepartmentManager", fields: [managerId], references: [id])
+  managerId Int?
+  jobs      Job[]
+  employees Employee[]
+}
+
+model Salary {
+  id            Int       @id @default(autoincrement())
+  amount        Float
+  effectiveDate DateTime
+  employee      Employee  @relation(fields: [employeeId], references: [id])
+  employeeId    Int       @unique
+}
+
+model Benefit {
+  id          Int              @id @default(autoincrement())
+  name        String
+  description String?
+  amount      Float?
+  employees   EmployeeBenefit[]
+}
+
+model EmployeeBenefit {
+  id         Int       @id @default(autoincrement())
+  startDate  DateTime
+  endDate    DateTime?
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  employeeId Int
+  benefit    Benefit   @relation(fields: [benefitId], references: [id])
+  benefitId  Int
+}
+
+model Attendance {
+  id         Int       @id @default(autoincrement())
+  date       DateTime
+  checkIn    DateTime?
+  checkOut   DateTime?
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  employeeId Int
+}
+
+model PerformanceReview {
+  id         Int       @id @default(autoincrement())
+  reviewDate DateTime
+  score      Int
+  comments   String?
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  employeeId Int
+}
+
+model Leave {
+  id         Int       @id @default(autoincrement())
+  type       String    // Vacation, Sick Leave, etc.
+  startDate  DateTime
+  endDate    DateTime
+  status     String    // Pending, Approved, Rejected
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  employeeId Int
+}
+
+model Document {
+  id         Int       @id @default(autoincrement())
+  type       String
+  filePath   String
+  uploadDate DateTime
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  employeeId Int
+}
+
+model Role {
+  id          Int     @id @default(autoincrement())
+  name        String  // Admin, Manager, Employee
+  users       User[]
+}
+
+model User {
+  id          Int       @id @default(autoincrement())
+  username    String    @unique
+  password    String
+  email       String    @unique @default("")
+  role        Role      @relation(fields: [roleId], references: [id])
+  roleId      Int
+  employee    Employee? @relation(fields: [employeeId], references: [id])
+  employeeId  Int?      @unique
+  logs        Log[]
+}
+
+
+model Log {
+  id        Int       @id @default(autoincrement())
+  action    String
+  timestamp DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id])
+  userId    Int
+}
